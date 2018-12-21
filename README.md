@@ -17,11 +17,11 @@ The DMC-30011 are set up to use a baud rate of 115200.
 The command reference is located in the `doc` directory.
 The updated code can be burned into the DMC unit using the development environmend using the folowing procedure.
 
-+ In the terminal window, run the command 'RS' to reset the device to a power-on state.
-+ Select the program that is to be burned onto the device and click 'Download'.
-+ In the terminal window, run the command 'BP' to burn the program into the device's memory.
++ In the terminal window, run the command `RS` to reset the device to a power-on state.
++ Select the program that is to be burned onto the device and click "Download".
++ In the terminal window, run the command `BP` to burn the program into the device's memory.
 
 Optional:
-+ Run the command 'RS' once again.
++ Run the command `RS` once again.
 + Upload the program from the devices memory into the development environment.
 + Verify that it is the program you just downloaded onto the device.
