@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<head>
+  <title>Installing GalilTools for Ubuntu</title>
+  <!-- Syntax boxes copied from Rainbow Github style -->
+  <style>
+    pre {
+        border: 1px solid #ccc;
+        word-wrap: break-word;
+        padding: 6px 10px;
+        line-height: 19px;
+        margin-bottom: 20px;
+    }
+    code {
+        border: 1px solid #eaeaea;
+        margin: 0px 2px;
+        padding: 0px 5px;
+        font-size: 12px;
+    }
+    pre code {
+        border: 0px;
+        padding: 0px;
+        margin: 0px;
+        -moz-border-radius: 0px;
+        -webkit-border-radius: 0px;
+        border-radius: 0px;
+    }
+    pre, code {
+        font-family: Consolas, 'Liberation Mono', Courier, monospace;
+        color: #333;
+        background: #f8f8f8;
+        -moz-border-radius: 3px;
+        -webkit-border-radius: 3px;
+        border-radius: 3px;
+    }
+    pre, pre code {
+        font-size: 13px;
+    }
+    h2{
+        margin-top:40px;margin-bottom:0px;
+    }
+    li img{
+      margin-top:15px;
+      margin-bottom:15px;
+      display:block;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    li p.caption{
+      text-align: center;
+    }
+    body{
+      font-family:Verdana; font-size: 13px;
+    }
+    body li p.caption{
+      font-family:Verdana; font-size: 12px;
+    }
+    body li{
+      margin-bottom:5px;
+    }
+    span.hl{
+      background-color:lime;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Installing GalilTools 1.6.4 on Ubuntu 12.04 & 14.04</h1>
+
+
+<!-- *********************************************************************** -->
+<h2>Install GalilTools Software Package</h2>
+<!-- *********************************************************************** -->
+<p>This section covers the installation of the GalilTools 64 bit software package.
+<!-- If the target operating system is a 32 bit operating system, replace "x86_64" with "i386" in all of the commands seen below. -->
+After installing the GalilTools software package, additional configuration is necessary. Any previous installations of GalilTools must be removed before installing the latest version.</p>
+
+<ul>
+  <li>Before using a PCI based controller, the GalilTools PCI driver must be installed and user permissions must be modified.</li>
+  <li>Before using a USB or RS232 based controllers, user permissions must be modified.</li>
+  <li>Before using an Ethernet based controller, the firewall must be configured.</li>
+</ul>
+
+<p>This document will outline the complete setup of GalilTools for all controller communication interfaces.</p>
+
+<ol>
+  <li>Open a terminal by opening the Dash Home, typing terminal, then clicking the icon. Alternatively the &lt;ctrl&gt; + &lt;alt&gt; + T keyboard shortcut can be used.</li>
+  <li>Get the GalilTools package and install it with the package manager.
+ 
+  <pre><code data-language="">12.04
+$ wget http://galil.com/download/software/galiltools/linux/ubuntu_12.04/galiltools_1.6.4_amd64.deb
+</code></pre>
+
+<pre><code data-language="">14.04
+$ wget http://galil.com/download/software/galiltools/linux/ubuntu_14.04/galiltools_1.6.4_amd64.deb
+</code></pre>
+<pre><code data-language="">$ sudo dpkg -i galiltools_1.6.4_amd64.deb
+[sudo] password for username: </code></pre>
+</li>
+  <li>GalilTools can be launched from the terminal with the command "galiltools" or from the Dash Home by searching for "galil".</li>
+</ol>
+
+
+<!-- *********************************************************************** -->
+<h2>Install the GalilTools PCI Driver</h2>
+<!-- *********************************************************************** -->
+<p>If GalilTools is to be used with a PCI based controller, the GalilTools PCI driver must be installed. If GalilTools will not be used with a PCI based controller, this section can be skipped. If the GalilSuite PCI driver has been previously installed, it must be removed before installing the GalilTools PCI driver. While there is limited support for the GalilSuite PCI driver in GalilTools, it is strongly recommended that the GalilTools PCI driver is used with GalilTools.</p>
+
+<ol>
+  <li>Open a terminal by opening the Dash Home, typing terminal, then clicking the icon. Alternatively the &lt;ctrl&gt; + &lt;alt&gt; + T keyboard shortcut can be used.</li>
+  <li>Get the Galil public key and import it.
+<pre><code data-language="">$ wget http://www.galil.com/download/software/galilsuite/linux/galil_public_key.asc
+$ gpg --no-default-keyring --keyring trustedkeys.gpg --import galil_public_key.asc </code></pre></li>
+  <li>Download the required packages for the build process.
+<pre><code data-language="">$ sudo apt-get install build-essential autoconf automake autotools-dev dh-make debhelper devscripts fakeroot xutils lintian pbuilder
+[sudo] password for username: </code></pre></li>
+  <li>Download the Linux PCI driver Debian source control file and source file from the Galil website.
+<pre><code data-language="">$ wget http://galil.com/download/software/galiltools/linux/galiltools-pci_1.6.4.dsc
+$ wget http://www.galil.com/download/software/galiltools/linux/galiltools-pci_1.6.4.tar.gz</code></pre></li>
+  <li>Extract the source and verify integrity of source package.
+<pre><code data-language="">$ dpkg-source -x galiltools-pci_1.6.4.dsc</code></pre></li>
+  <li>Move the newly extracted source directory and build the driver.
+<pre><code data-language="">$ cd galiltools-pci-1.6.4
+$ dpkg-buildpackage -uc -b</code></pre></li>
+  <li>Return to the parent directory where the deb installer file is located and install the deb installer file.
+<pre><code data-language="">$ cd ..
+$ sudo dpkg -i galiltools-pci_1.6.4_amd64.deb</code></pre></li>
+</ol>
+
+
+
+<!-- *********************************************************************** -->
+<h2>Set User Permissions</h2>
+<!-- *********************************************************************** -->
+<p>To connect to Galil controllers over the USB, RS232 or PCI interfaces, a user must have the proper permissions to access the device. If a standard user intends to connect to a Galil controller over USB, RS232, or PCI, the following instructions must be followed. If a standard user wishes only to connect to Ethernet based controllers, this section can be skipped.</p>
+
+<ol>
+  <li>Open a terminal by opening the Dash Home, typing terminal, then clicking the icon. Alternatively the &lt;ctrl&gt; + &lt;alt&gt; + T keyboard shortcut can be used.</li>
+  <li>Issue the following command to add users to the dialout group. The dialout group members have permission to use serial ports. Such permission is necessary for communication with Galil controllers over RS232 or USB. Make sure to replace "username" with the desired username.
+<pre><code data-language="">$ sudo usermod -a -G dialout <b>username</b>
+[sudo] password for username: </code></pre></li>
+  <li>Issue the following command to add users to the galil group. The galil group members have permission to use Galil PCI based controllers. Make sure to replace username with the desired username. Note that the galil group will not exist unless a Galil PCI driver has been previously installed.
+<pre><code data-language="">$ sudo usermod -a -G galil <b>username</b>
+[sudo] password for username: </code></pre></li>
+  <li>The process may be repeated to modify other users.</li>
+  <li>For the updated permissions to take effect, the modified user must logout then log back in.
+  </li>
+</ol>
+
+
+<!-- *********************************************************************** -->
+<h2>Configure the Firewall</h2>
+<!-- *********************************************************************** -->
+<p>
+If a firewall is in place, two exceptions must be included in the firewall settings. Furthermore, on Linux machines, standard users cannot typically listen on any port less than 1024. This makes a redirect necessary.
+<p>
+<ol>
+<li>Accepting UDP traffic on port 50000 allows for the connection to Galil controllers over Ethernet.</li>
+<li>Accepting UDP traffic on port 60001 through 60007 allows the host to receive Data Record and unsolicited messages from the controller.</li>
+<li>The port redirection of port 67 to port 1067 allows standard users to assign IP addresses to controllers. Note that as a result port 1067 must accept udp traffic.</li>
+</ol>
+
+<p>
+Three possible firewall configurations will be outlined below. Please review each one to see which is right for the target system.
+</p>
+
+<!-- *********************************************************************** -->
+<h3>Standard User without Uncomplicated Firewall (UFW)</h3>
+<!-- *********************************************************************** -->
+<p>
+If no firewall is in use, setting firewall exceptions for ports 1067, 50000, and 60001 through 60007 are not necessary. Ubuntu does not install with a set of firewall rules so only the port forward will be necessary here. This example will only setup the port forward so standard users can assign IP addresses to controllers.
+</p>
+
+<p>
+The following changes allow standard users to assign IP addresses to controllers using GalilTools.
+</p>
+
+<ol>
+  <li>Open a terminal by clicking Applications>Accessories>Terminal.</li>
+  <li> First a configuration file will be created at /etc/iptables.rules. This will be loaded by iptables-restore on the network interface pre-up to load the required iptables rules automatically.
+<pre><code data-language="">$ sudo gedit /etc/iptables.rules
+[sudo] password for username:
+</code></pre></li>
+
+  <li>Add the following lines to the newly created /etc/iptables.rules file.
+<pre><code data-language="">*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A PREROUTING -s 0.0.0.0/32 -p udp -m udp --dport 67 -j DNAT --to-destination 0.0.0.0:1067
+COMMIT</code></pre></li>
+
+  <li>Next the /etc/network/interfaces file will be modified.
+  <pre><code data-language="">$ sudo gedit /etc/network/interfaces
+[sudo] password for username:
+</code></pre></li>
+
+  <li>
+  At the end of the network related lines for the interface that the controller will utilize, add the line that is highlighted in green in the example below.
+  <pre><code data-language="">auto lo
+iface lo inet loopback
+  <span class="hl">pre-up iptables-restore &lt; /etc/iptables.rules</h1></code></pre></li>
+
+  <li>
+    The firewall settings from /etc/iptables.rules will now be applied each time the interface comes up. To apply the new settings now, reset the interface or reboot the system.
+  </li>
+</ol>
+
+
+<!-- *********************************************************************** -->
+<h3>Standard User with Uncomplicated Firewall (UFW)</h3>
+<!-- *********************************************************************** -->
+For Ubuntu system that use UFW, the default firewall configuration tool for Ubuntu, this example will demonstrate how to create the required exceptions and setup the port forward so standard users can assign IP addresses to controllers. It will be assumed that UFW is running with the default set of rules (profile).
+ 
+<ol>
+  <li>Open a terminal by clicking Applications>Accessories>Terminal.</li>
+  <li> First the ufw configuration file will be modified.
+<pre><code data-language="">$ sudo gedit /etc/ufw/before.rules
+[sudo] password for username:
+</code></pre></li>
+
+  <li>Insert the following text at the bottom of the file.
+<pre><code data-language=""># GalilTools firewall rules 
+*filter
+-A ufw-before-input -p udp -m udp --dport 1067 -j ACCEPT
+-A ufw-before-input -p udp -m udp --dport 50000 -j ACCEPT
+-A ufw-before-input -p udp -m udp --dport 60001:60007 -j ACCEPT
+COMMIT
+*nat
+:PREROUTING ACCEPT [0:0]
+-A PREROUTING -p udp --src 0.0.0.0 --dport 67 -j DNAT --to 0.0.0.0:1067
+COMMIT
+</code></pre></li>
+
+  <li>
+    To apply the new settings now restart ufw or reboot the machine.
+    <pre><code data-language="">$ sudo ufc disable
+[sudo] password for username:
+$ sudo ufc enable
+[sudo] password for username:
+</code></pre></li>
+</ol>
+
+
+
+
+
+<!-- *********************************************************************** -->
+<h3>Root User without Uncomplicated Firewall (UFW)</h3>
+<!-- *********************************************************************** -->
+<p>
+If standard users do not need to assign IP addresses to controllers, the redirection of port 67 to port 1067 is not necessary but the "-bootps 67 -bootpc 68" command line switch must be used to tell GalilTools to listen on port 67 instead of the default 1067. The following is an example of how to launch GalilTools from the terminal to allow a privileged user to assign an IP address to a controller without setting up the operating system to redirect port 67 to 1067.
+<pre style="margin-left:20px;"><code data-language="">$ sudo galiltools -bootps 67 -bootpc 68
+[sudo] password for username:
+</code></pre>
+</p>
+
+
+</body>

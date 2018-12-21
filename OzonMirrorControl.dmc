@@ -1,56 +1,107 @@
-'3mm OzonMirrorControl
-'180419
-'Per Bjorklund
-'DI(1) REACH HOMEPOS.
-'DI(2) ALARM
-'DO(1) ALARM RESET
-'DO(3) GOTO HOMEPOS
-'current POS.
-'deg INPUT DEGREE
-'offset Home->0 deg OBS PULSER INTE
-' GRADER 360 deg = 10000 pls
-' 19200 baud
+' 3mm OzonMirrorControl
+' (C) 2018 Marcus Malmquist,
+'          Per Bjorklund
+'
+' Digital Inputs:
+' 1: Moving to home
+' 2: Alarm
+'
+' Digital Outputs:
+' 1: Clear/reset alarm
+' 2: Reserved
+' 3: Go to home position
+' 4: Reserved
+'
+' Stepper motor:
+' 10 000 steps per revolution (360 deg)
+' This means that the actual position
+' will be N*0.036, where N is an
+' integer
+'
+' Interface:
+' expressions inside double quotes are
+' commands to be sent to this unit.
+'
+' - Initialize mirror:
+'   1. "in_init=?"
+'      ==0: Safe to run init
+'      !=0: #INIT is already running
+'   2. "XQ #INIT"
+' - Move to new target position:
+'   1. "in_move=?"
+'      ==0: Safe to get position
+'      !=0: #MOVE is already running
+'   2. "deg=123" (target in degrees)
+'   3. "XQ #MOVE"
+' - Get current position:
+'   1. "in_move=?"
+'      ==0: Safe to get position
+'      !=0: position may be incorrect
+'   2 "current=?" (position in degrees)
+'
+#AUTO
+ ' position (in pulses) of home
+ ' relative to 0 deg position
+ homepos=-2500
+ ' indicate #INIT is/not running
+ in_init=0
+ ' indicate #MOVE is/not running
+ in_move=0
+ ' target position (degrees)
+ deg=0
+ ' current position (degrees)
+ current=0
+EN
+
+' Reset motor and move to 0 deg
 #INIT
-'
-MO
-MT -2
-SH
-AC 7000  ;' Accelartion  tidigare 7000
-DC 7000  ;' Deceleration tidigare 7000
-SP 5000    ;' Hastighet   tidigare 5000
-'
-  SB3    ;'MOVE TO HOMEPOS
-WT500
-  CB3
-  deg=0
-'
-'   CB2
-#HOMING
-  IF (@IN[1]=1)  ;'HOME YET? 0=DONE
-   JP #HOMING
- ENDIF
-  PA offset
-  BG
-   AM  
-   DP0
-   DE0
-     current=(_DEA*360/10000)
-'
-'
-'
+ JS #SETINIT; ' indicate initializing
+ JS #RSMOTOR; ' Reset motor settings
+ JS #TOHOME; ' Move to home position
+ DP homepos; ' set reference position
+ deg=0
+ JS #MOVE; ' Move to deg
+ JS #CLRINIT; ' indicate initialized
 EN
+
+' Move to deg
 #MOVE
-  pos=(deg*10000/360)
-  PA pos
-  BG
-  AM
-#MOVING
-    IF @IN[1]=1
-      JP #MOVING
-    ELSE
-    current=(_DEA*360/10000)
-'
-      CB2
-'
-    ENDIF
+ JS #SETMOVE
+ PA (deg*10000/360); ' set abs target
+ BG; ' begin move
+ MC; ' wait for movement
+ current=(_DEA*360/10000)
+ JS #CLRMOVE
 EN
+
+' Refresh motor settings
+#RSMOTOR
+ MO; ' turn off motor
+ MT -2; ' motor w/ active high step
+ SH; ' enable servo & clear pos error
+ ' Accelartion, multiple of 1024
+ AC 7000
+ ' Deceleration, multiple of 1024
+ DC 7000
+ ' Speed
+ SP 5000
+EN
+
+' Move to home position
+#TOHOME
+ ' Start moving to home position
+ SB3;WT500;CB3
+ ' Wait until home
+#HOMING
+ WT 1
+ JP #HOMING,(@IN[1]) 
+EN
+
+' entering #MOVE subroutine
+#SETMOVE;in_move=1;EN
+' exiting #MOVE subroutine
+#CLRMOVE;in_move=0;EN
+' entering #INIT subroutine
+#SETINIT;in_init=1;EN
+' exiting #INIT subroutine
+#CLRINIT;in_init=0;EN

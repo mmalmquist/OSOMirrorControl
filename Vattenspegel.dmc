@@ -1,146 +1,125 @@
 ' H2O V121122 FROM V121119
-'DMC 2113
-'IP 169.254.212.76
-'STEPMOTOR ARM98AC
-'DRIVER ARD-C
-'PER BJORKLUND
-'-----------------------------------------------
-#INIT
-'Declarations
-ratio=10000/40000 ;'STEP/ENCODER/REV
-window=0  ;'1=OK
-step=0
-encoder=0
-deg=0
-err=5 ;' err=step-encoder
-angle=0
-IniOk=0
-SB1
-q=0 ;'ANTAL POSADJ
-'--------------------Angel Quality-----------
-fail=0
-ok=0
-common=0
+' DMC 2113
+' IP 169.254.212.76
+' STEPMOTOR ARM98AC
+' DRIVER ARD-C
+' PER BJORKLUND
+' revised by Marcus Malmquist
 '
-'-----------------------------------------------
+' Inputs:
+' 1: =1 mirror is moving (as commanded). =0 mirror is in position
+' 3: motor is at home position
 '
-ST    ;'STOP ALL
-CW2
-CFA
-SB2  ;' CLEAR IF ANY DRIVER ALARMS
-WT100
-CB2
-MT-2
-SB3  ;' C-ON
-ACA=5
-DCA=5
+' Outputs:
+' 0: -
+' 1: ??
+' 2: alarm
+' 3: C (driver/motor on/off?)
 '
-SHA
-'
-#REV         ;' REVERSE 18 DEG
-IF (@IN[3]=1
-  PRA=500
-  SPA=500
-  BGA
-  MCA
-ENDIF
-'
-JGA=-500
-BGA
-'
-#INILOOP
-IniOk=0
-IF (@IN[3]=1
-IniOk=1
-  ST
-'  MG "INDEX"
-  JP #ZERO
-ELSE
- JP #INILOOP
+' Motor: 10000 steps per revolution
+' Encoder: 40000 steps per revolution
+' -----------------------------------------------------------------------------
+#AUTO                           ;' Poweron/reset settings.
+ CW2                            ;' unsolicited traffic
+ CFA                            ;' use ethernet port A
+ tol=5                          ;' step-encoder value mismatch [step]
+ angle=0                        ;' position quality [%], ok/common
+ ok=0                           ;' position correct count
+ common=0                       ;' position checked count
+ deg=0                          ;' desired target [deg]
+ IniOk=0                        ;' #INIT ran ok
+ speed=3000                     ;' motor speed
 EN
-'
-#ZERO
- deg=0
-  WT500
-  PRA=(3870+2500)
-  SPA=3000
-  BGA
-  MCA
-  DP0,0
-  DE0,0
-'  MG "IN POSITION"
-JP #POSCHK
-'
-#POS
-q=0
-adj=0
-angle= ok/common*100
-'MG "Angle Quality:",(angle)," %"
-ok=0
-fail=0
-common=0
-  SB1
-  step=(@RND[-deg*10000/360])
-  PAA=step
-  BGA
-  MCA
-JP #POSCHK
-'
-#POSCHK
-WT 1000
-i=(step-@RND[_TPA/4])
-'
- IF (@ABS[i]) >= err
- ' MG "ERR"
-'  MG "i: ",i
- window=0 
- IF adj=0
-    JS #POSADJ
- ENDIF 
-   ELSE
-    window=1
+#INIT                           ;' (re-)initialize motor and variables
+ JS #SETINIT                    ;' indicate initializing
+ SB3                            ;' C-ON
+ SB1                            ;'
+ SB2;WT100;CB2                  ;' CLEAR IF ANY DRIVER ALARMS
+ JS #RSMOTOR                    ;' initialize motor parameters
+ JS #TOHOME                     ;' Move to home position
+ PR 6370                        ;' move 6370 steps (to position 0)
+ BG                             ;' start movement
+ MC                             ;' wait for move
+ DP 0                           ;' set motor position to 0
+ DE 0                           ;' set encoder position to 0
+ deg=0                          ;' desired target [deg]
+ JS #CLRINIT                    ;' indicate initialized
+#POS                            ;' move to target position
+ angle=0
+ IF(common>0)
+  angle=100*ok/common           ;' update position quality for current position
  ENDIF
-'
-IF window=1 
-'
-  IF @IN[1]=0
-    CB1
-adj=1
-    ok=ok+1
-   ' MG "IN POS"
-    d= -@RND[ _TPA*360/400]
-  '  MG "DEG: ",d
-  ELSE 
-    SB1
-'  MG "SB1"
-  ENDIF
-common=common+1
-ENDIF
-'
-JP #POSCHK
-'
-'
-#POSADJ
-q=q+1
-'MG "POSADJ: ", q
-'
-oldDPA=_RPA  ;'SPARA MOTORPOSITION
-oldSPA=_SPA  ;'SPARA HAST
-'MG "Adj"
-SPA=5
-PRA=i
-BGA
-MCA
-DPA=oldDPA
-SPA=oldSPA
-d= -@RND[ _TPA*360/400]
-'MG "DEGadj: ",d
+ ok=0                           ;' reset position correct count
+ common=0                       ;' reset position checked count
+ adjusted=0                     ;' position adjust count
+ SB1                            ;'
+ pos=@RND[-deg*10000/360]
+ PA pos                         ;' set target position (in steps)
+ BG                             ;' start movement
+ MC                             ;' wait for move
+ JP #POSCHK                     ;' start checking position quality
 EN
-'
-'
-'
-'
-'
-'
-'
-'
+#POSCHK                         ;'
+ WT 100                         ;' wait 100 ms
+ diff=_TDA-(_TPA/4)             ;' current position error
+ IF(@IN[1])                     ;' mirror is moving
+  IF(@ABS[diff]<tol)            ;' within error tolerance
+   SB1                          ;' ??
+  ENDIF                         ;'
+ ELSE                           ;' mirror is not moving
+  IF(@ABS[diff]<tol)            ;' within error tolerance
+   CB1                          ;' ??
+   ok=ok+1                      ;' position is correct
+  ELSE
+   JS #POSADJ                   ;' adjust position
+  ENDIF
+  common=common+1               ;' increase position-checked-counter
+ ENDIF
+ newpos=@RND[-deg*10000/360]    ;' check target
+ JP #POS,(newpos<>pos)          ;' target changed
+ JP #POSCHK                     ;' check position again
+EN
+' Refresh motor settings
+#RSMOTOR
+ MO                             ;' turn off motor
+ MT -2                          ;' Step motor w/ hi-step pulses
+ SH                             ;' enable servo & clear pos error
+ AC 1024                        ;' accelartion, multiple of 1024
+ DC 1024                        ;' deceleration, multiple of 1024
+ SP 3000                        ;' speed
+ 'KS 8                          ;' increase for smoother movement
+EN
+#TOHOME
+ oldspeed=_SPA                  ;' save current speed
+ oldacc=_ACA                    ;' save current acceleration
+ olddec=_DCA                    ;' save current deceleration
+ IF(@IN[3])                     ;' at or close to home, reverse 500 steps
+  PR 500                        ;' move 500 steps
+  BG                            ;' start movement
+  MC                            ;' wait for move
+ ENDIF                          ;'
+ JG -500                        ;' Set jog speed (continous move)
+ BG                             ;' start movement
+#INILOOP                        ;'
+ JP #INILOOP,(@IN[3]=0)         ;' wait until we reach home
+ ST                             ;' stop jogging
+ WT 500                         ;' wait for motors to stop
+ SP oldspeed                    ;' restore old speed
+ AC oldacc                      ;' restore old acceleration
+ DC olddec                      ;' restore old deceleration
+EN
+#POSADJ                         ;' adjust position
+ adjusted=adjusted+1
+ oldref=_RPA                    ;' store current motor position
+ oldspeed=_SPA                  ;' store current speed
+ SP 5                           ;' set speed for adjusting
+ PR diff                        ;' move the mismatched steps
+ BG                             ;' start movement
+ MC                             ;' wait for movement
+ DP oldref                      ;' restore old motor position
+ SP oldspeed                    ;' restore old speed
+EN 
+' entering #INIT subroutine
+#SETINIT;IniOk=0;EN
+' exiting #INIT subroutine
+#CLRINIT;IniOk=1;EN
