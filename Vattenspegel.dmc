@@ -1,0 +1,146 @@
+' H2O V121122 FROM V121119
+'DMC 2113
+'IP 169.254.212.76
+'STEPMOTOR ARM98AC
+'DRIVER ARD-C
+'PER BJORKLUND
+'-----------------------------------------------
+#INIT
+'Declarations
+ratio=10000/40000 ;'STEP/ENCODER/REV
+window=0  ;'1=OK
+step=0
+encoder=0
+deg=0
+err=5 ;' err=step-encoder
+angle=0
+IniOk=0
+SB1
+q=0 ;'ANTAL POSADJ
+'--------------------Angel Quality-----------
+fail=0
+ok=0
+common=0
+'
+'-----------------------------------------------
+'
+ST    ;'STOP ALL
+CW2
+CFA
+SB2  ;' CLEAR IF ANY DRIVER ALARMS
+WT100
+CB2
+MT-2
+SB3  ;' C-ON
+ACA=5
+DCA=5
+'
+SHA
+'
+#REV         ;' REVERSE 18 DEG
+IF (@IN[3]=1
+  PRA=500
+  SPA=500
+  BGA
+  MCA
+ENDIF
+'
+JGA=-500
+BGA
+'
+#INILOOP
+IniOk=0
+IF (@IN[3]=1
+IniOk=1
+  ST
+'  MG "INDEX"
+  JP #ZERO
+ELSE
+ JP #INILOOP
+EN
+'
+#ZERO
+ deg=0
+  WT500
+  PRA=(3870+2500)
+  SPA=3000
+  BGA
+  MCA
+  DP0,0
+  DE0,0
+'  MG "IN POSITION"
+JP #POSCHK
+'
+#POS
+q=0
+adj=0
+angle= ok/common*100
+'MG "Angle Quality:",(angle)," %"
+ok=0
+fail=0
+common=0
+  SB1
+  step=(@RND[-deg*10000/360])
+  PAA=step
+  BGA
+  MCA
+JP #POSCHK
+'
+#POSCHK
+WT 1000
+i=(step-@RND[_TPA/4])
+'
+ IF (@ABS[i]) >= err
+ ' MG "ERR"
+'  MG "i: ",i
+ window=0 
+ IF adj=0
+    JS #POSADJ
+ ENDIF 
+   ELSE
+    window=1
+ ENDIF
+'
+IF window=1 
+'
+  IF @IN[1]=0
+    CB1
+adj=1
+    ok=ok+1
+   ' MG "IN POS"
+    d= -@RND[ _TPA*360/400]
+  '  MG "DEG: ",d
+  ELSE 
+    SB1
+'  MG "SB1"
+  ENDIF
+common=common+1
+ENDIF
+'
+JP #POSCHK
+'
+'
+#POSADJ
+q=q+1
+'MG "POSADJ: ", q
+'
+oldDPA=_RPA  ;'SPARA MOTORPOSITION
+oldSPA=_SPA  ;'SPARA HAST
+'MG "Adj"
+SPA=5
+PRA=i
+BGA
+MCA
+DPA=oldDPA
+SPA=oldSPA
+d= -@RND[ _TPA*360/400]
+'MG "DEGadj: ",d
+EN
+'
+'
+'
+'
+'
+'
+'
+'

@@ -1,0 +1,56 @@
+'3mm OzonMirrorControl
+'180419
+'Per Bjorklund
+'DI(1) REACH HOMEPOS.
+'DI(2) ALARM
+'DO(1) ALARM RESET
+'DO(3) GOTO HOMEPOS
+'current POS.
+'deg INPUT DEGREE
+'offset Home->0 deg OBS PULSER INTE
+' GRADER 360 deg = 10000 pls
+' 19200 baud
+#INIT
+'
+MO
+MT -2
+SH
+AC 7000  ;' Accelartion  tidigare 7000
+DC 7000  ;' Deceleration tidigare 7000
+SP 5000    ;' Hastighet   tidigare 5000
+'
+  SB3    ;'MOVE TO HOMEPOS
+WT500
+  CB3
+  deg=0
+'
+'   CB2
+#HOMING
+  IF (@IN[1]=1)  ;'HOME YET? 0=DONE
+   JP #HOMING
+ ENDIF
+  PA offset
+  BG
+   AM  
+   DP0
+   DE0
+     current=(_DEA*360/10000)
+'
+'
+'
+EN
+#MOVE
+  pos=(deg*10000/360)
+  PA pos
+  BG
+  AM
+#MOVING
+    IF @IN[1]=1
+      JP #MOVING
+    ELSE
+    current=(_DEA*360/10000)
+'
+      CB2
+'
+    ENDIF
+EN
